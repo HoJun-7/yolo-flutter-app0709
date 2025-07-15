@@ -29,9 +29,7 @@ class _InferenceResultScreenState extends State<InferenceResultScreen> {
     final viewModel = context.watch<ConsultationRecordViewModel>();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('진단 결과 목록'),
-      ),
+      appBar: AppBar(title: const Text('진단 결과 목록')),
       body: viewModel.isLoading
           ? const Center(child: CircularProgressIndicator())
           : viewModel.error != null
@@ -40,6 +38,7 @@ class _InferenceResultScreenState extends State<InferenceResultScreen> {
     );
   }
 
+<<<<<<< HEAD
   Widget _buildListView(List<ConsultationRecord> records) { // ConsultationRecord 타입 사용
     if (records.isEmpty) {
       return const Center(child: Text('진단 결과가 없습니다.'));
@@ -51,18 +50,40 @@ class _InferenceResultScreenState extends State<InferenceResultScreen> {
 
     // 날짜별로 인덱스를 매기기 위한 맵
     final Map<String, int> dailyIndexMap = {};
+=======
+  Widget _buildListView(List<ConsultationRecord> records) {
+    final sortedRecords = List.from(records)..sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    final imageBaseUrl = widget.baseUrl.replaceAll('/api', '');
+>>>>>>> 1e416c1e1b853d4b9002ccb658fa7671afba6713
 
     return ListView.builder(
       padding: const EdgeInsets.all(8.0),
       itemCount: sortedRecords.length,
       itemBuilder: (context, index) {
         final record = sortedRecords[index];
+<<<<<<< HEAD
         final timestamp = record.timestamp;
         final formattedTime = DateFormat('yyyy-MM-dd-HH-mm').format(timestamp);
         final dateKey = DateFormat('yyyyMMdd').format(timestamp);
 
         dailyIndexMap[dateKey] = (dailyIndexMap[dateKey] ?? 0) + 1;
         final dailyIndex = dailyIndexMap[dateKey]!;
+=======
+        final listIndex = sortedRecords.length - index;
+
+        String formattedTime = '시간 정보 없음';
+        try {
+          final parts = record.originalImagePath.split('/').last.split('_');
+          if (parts.length >= 2) {
+            final t = parts[1];
+            formattedTime = DateFormat('yyyy-MM-dd HH:mm').format(DateTime.parse(
+              '${t.substring(0, 4)}-${t.substring(4, 6)}-${t.substring(6, 8)} ${t.substring(8, 10)}:${t.substring(10, 12)}:00',
+            ));
+          }
+        } catch (e) {
+          formattedTime = '시간 파싱 오류';
+        }
+>>>>>>> 1e416c1e1b853d4b9002ccb658fa7671afba6713
 
         return Card(
           elevation: 2,
@@ -87,8 +108,22 @@ class _InferenceResultScreenState extends State<InferenceResultScreen> {
                 context,
                 MaterialPageRoute(
                   builder: (_) => ResultDetailScreen(
+<<<<<<< HEAD
                     originalImageUrl: '${widget.baseUrl}${record.originalImagePath}',
                     processedImageUrl: '${widget.baseUrl}${record.processedImagePath}',
+=======
+                    originalImageUrl: '$imageBaseUrl${record.originalImagePath}',
+                    processedImageUrls: {
+                      1: '$imageBaseUrl${record.processedImagePath}',
+                    },
+                    modelInfos: {
+                      1: {
+                        'model_used': record.modelUsed, // ✅ DB에서 불러온 값 사용
+                        'confidence': record.confidence ?? 0.0,
+                        'lesion_points': record.lesionPoints ?? [],
+                      },
+                    },
+>>>>>>> 1e416c1e1b853d4b9002ccb658fa7671afba6713
                   ),
                 ),
               );

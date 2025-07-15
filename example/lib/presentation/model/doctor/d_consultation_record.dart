@@ -10,6 +10,8 @@ class ConsultationRecord {
   final DateTime timestamp;
 
   final double? confidence;
+  final String? modelUsed;
+  final String? className;
   final List<List<int>>? lesionPoints;
   final String? doctorOpinion; // ✅ 의사 소견 필드 추가
 
@@ -21,6 +23,8 @@ class ConsultationRecord {
     required this.processedImagePath,
     required this.timestamp,
     this.confidence,
+    this.modelUsed,
+    this.className,
     this.lesionPoints,
     this.doctorOpinion, // ✅ 생성자에 추가
   });
@@ -56,7 +60,9 @@ class ConsultationRecord {
       originalImagePath: json['original_image_path'] ?? '',
       processedImagePath: json['processed_image_path'] ?? '',
       timestamp: DateTime.tryParse(json['timestamp'] ?? '') ?? DateTime.now(),
-      confidence: (inference['backend_model_confidence'] as num?)?.toDouble(),
+      confidence: (inference['confidence'] as num?)?.toDouble(),
+      modelUsed: inference['model_used'] ?? '',
+      className: inference['class_name'] ?? '',
       lesionPoints: (inference['lesion_points'] as List?)
           ?.map<List<int>>((pt) => List<int>.from(pt))
           .toList(),
@@ -74,12 +80,15 @@ class ConsultationRecord {
       'processed_image_path': processedImagePath,
       'timestamp': timestamp.toIso8601String(),
       'inference_result': {
-        'backend_model_confidence': confidence,
+        'confidence': confidence,
+        'model_used': modelUsed,
+        'class_name': className,
         'lesion_points': lesionPoints,
       },
       'doctor_opinion': doctorOpinion, // ✅ 필드 추가
     };
   }
+<<<<<<< HEAD
 
   // ✅ copyWith 메서드 추가 (불변성 유지하며 객체 업데이트)
   ConsultationRecord copyWith({
@@ -105,4 +114,6 @@ class ConsultationRecord {
       doctorOpinion: doctorOpinion ?? this.doctorOpinion,
     );
   }
+=======
+>>>>>>> 1e416c1e1b853d4b9002ccb658fa7671afba6713
 }

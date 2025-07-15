@@ -4,11 +4,22 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
+<<<<<<< HEAD
 import 'package:flutter/foundation.dart' show kIsWeb; // 웹 환경 확인을 위해 추가
 import 'dart:typed_data'; // Uint8List 사용을 위해 추가
 
 class UploadScreen extends StatefulWidget {
   final String userId;
+=======
+import 'package:path/path.dart' as path;
+import 'package:http_parser/http_parser.dart';
+import 'package:provider/provider.dart';
+
+import '/presentation/viewmodel/auth_viewmodel.dart';
+import 'doctor/d_result_detail_screen.dart';
+
+class UploadScreen extends StatefulWidget {
+>>>>>>> 1e416c1e1b853d4b9002ccb658fa7671afba6713
   final String baseUrl;
 
   const UploadScreen({
@@ -22,9 +33,15 @@ class UploadScreen extends StatefulWidget {
 }
 
 class _UploadScreenState extends State<UploadScreen> {
+<<<<<<< HEAD
   // 웹과 모바일/데스크톱 환경에 따라 다른 이미지 데이터 타입을 저장합니다.
   File? _selectedImageFile; // 모바일/데스크톱용 File 객체
   Uint8List? _selectedImageBytes; // 웹용 이미지 바이트 데이터
+=======
+  File? _imageFile;
+  Uint8List? _webImage;
+  bool _isLoading = false;
+>>>>>>> 1e416c1e1b853d4b9002ccb658fa7671afba6713
 
   bool _loading = false; // 로딩 상태를 관리합니다.
 
@@ -68,6 +85,7 @@ class _UploadScreenState extends State<UploadScreen> {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: source);
 
+<<<<<<< HEAD
     if (pickedFile != null) {
       print("✅ 이미지 선택됨: ${pickedFile.path}");
       if (kIsWeb) {
@@ -86,6 +104,22 @@ class _UploadScreenState extends State<UploadScreen> {
       }
     } else {
       print("⚠️ 이미지 선택 취소됨");
+=======
+    setState(() {
+      _webImage = null;
+      _imageFile = null;
+    });
+
+    if (kIsWeb) {
+      final bytes = await picked.readAsBytes();
+      setState(() {
+        _webImage = bytes;
+      });
+    } else {
+      setState(() {
+        _imageFile = File(picked.path);
+      });
+>>>>>>> 1e416c1e1b853d4b9002ccb658fa7671afba6713
     }
   }
 
@@ -113,10 +147,22 @@ class _UploadScreenState extends State<UploadScreen> {
       print("진단 요청 URL: $uri"); // 디버깅을 위해 최종 요청 URL을 출력합니다.
 
       final request = http.MultipartRequest('POST', uri);
+<<<<<<< HEAD
 
       // 현재 플랫폼에 따라 이미지 데이터를 요청에 추가합니다.
       if (kIsWeb && _selectedImageBytes != null) {
         // 웹인 경우, 바이트 데이터로 MultipartFile을 생성합니다.
+=======
+      request.fields['user_id'] = registerId;
+
+      if (_imageFile != null) {
+        request.files.add(await http.MultipartFile.fromPath(
+          'file',
+          _imageFile!.path,
+          contentType: MediaType('image', 'png'),
+        ));
+      } else if (_webImage != null) {
+>>>>>>> 1e416c1e1b853d4b9002ccb658fa7671afba6713
         request.files.add(http.MultipartFile.fromBytes(
           'file', // 서버에서 기대하는 필드 이름 (백엔드와 일치해야 함)
           _selectedImageBytes!,
@@ -136,6 +182,7 @@ class _UploadScreenState extends State<UploadScreen> {
       // 사용자 ID 필드를 요청에 추가합니다.
       request.fields['user_id'] = widget.userId;
 
+<<<<<<< HEAD
       // 요청을 보내고 응답을 받습니다.
       final response = await request.send();
       final resBody = await response.stream.bytesToString(); // 응답 본문을 문자열로 변환
@@ -172,6 +219,43 @@ class _UploadScreenState extends State<UploadScreen> {
           'baseUrl': widget.baseUrl, // ResultScreen에서 이미지 로드 시 필요할 수 있음
           'userId': widget.userId, // 사용자 ID
         });
+=======
+      if (response.statusCode == 200) {
+        final responseData = json.decode(responseBody);
+        final processedPath = responseData['image_url'] as String?;
+        final inferenceData = responseData['inference_data'] as Map<String, dynamic>?;
+        final originalPath = responseData['original_image_path'] as String?;
+
+        if (processedPath != null && inferenceData != null && originalPath != null) {
+          final baseStaticUrl = widget.baseUrl.replaceFirst('/api', '');
+
+          final originalImageUrl = '$baseStaticUrl$originalPath';
+          final processedImageUrl = '$baseStaticUrl$processedPath';
+
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ResultDetailScreen(
+                originalImageUrl: originalImageUrl,
+                processedImageUrls: {
+                  1: processedImageUrl,
+                },
+                modelInfos: {
+                  1: inferenceData,
+                },
+              ),
+            ),
+          );
+        } else {
+          throw Exception('image_url 또는 inference_data 없음');
+        }
+      } else {
+        print('서버 오류: ${response.statusCode}');
+        print('응답 본문: $responseBody');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('서버 오류 발생')),
+        );
+>>>>>>> 1e416c1e1b853d4b9002ccb658fa7671afba6713
       }
     } catch (e) {
       print("❌ 진단 요청 중 에러 발생: $e");
@@ -190,6 +274,7 @@ class _UploadScreenState extends State<UploadScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+<<<<<<< HEAD
       appBar: AppBar(
         title: const Text('AI 진단'),
         leading: IconButton(
@@ -262,6 +347,43 @@ class _UploadScreenState extends State<UploadScreen> {
               ),
             ],
           ),
+=======
+      appBar: AppBar(title: const Text('사진으로 예측하기')),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            if (_imageFile != null)
+              Image.file(_imageFile!, height: 200)
+            else if (_webImage != null)
+              Image.memory(_webImage!, height: 200)
+            else
+              const Placeholder(fallbackHeight: 200),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: _pickImage,
+                  icon: const Icon(Icons.photo),
+                  label: const Text('사진 선택'),
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton.icon(
+                  onPressed: _isLoading ? null : _uploadImage,
+                  icon: _isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.cloud_upload),
+                  label: const Text('업로드'),
+                ),
+              ],
+            ),
+          ],
+>>>>>>> 1e416c1e1b853d4b9002ccb658fa7671afba6713
         ),
       ),
     );
