@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import '/presentation/viewmodel/doctor/d_consultation_record_viewmodel.dart';
-import '/presentation/model/doctor/d_consultation_record.dart';
-import 'd_result_detail_screen.dart';
+import '/presentation/viewmodel/doctor/d_consultation_record_viewmodel.dart'; // ConsultationRecordViewModel 임포트 유지
+import '/presentation/model/doctor/d_consultation_record.dart'; // ✅ ConsultationRecord 모델 임포트 다시 추가
+import '/presentation/screens/doctor/d_result_detail_screen.dart'; // 상세 화면 임포트
 
 class InferenceResultScreen extends StatefulWidget {
   final String baseUrl;
@@ -40,59 +40,46 @@ class _InferenceResultScreenState extends State<InferenceResultScreen> {
     );
   }
 
-  Widget _buildListView(List<ConsultationRecord> records) {
-    final List<ConsultationRecord> sortedRecords = List.from(records)
-      ..sort((a, b) => b.timestamp.compareTo(a.timestamp)); // 최신순
+  Widget _buildListView(List<ConsultationRecord> records) { // ConsultationRecord 타입 사용
+    if (records.isEmpty) {
+      return const Center(child: Text('진단 결과가 없습니다.'));
+    }
 
-    final imageBaseUrl = widget.baseUrl.replaceAll('/api', '');
+    // 시간 역순으로 정렬 (가장 최신 기록이 위로 오도록)
+    final sortedRecords = List<ConsultationRecord>.from(records) // ConsultationRecord 타입 사용
+      ..sort((a, b) => b.timestamp.compareTo(a.timestamp)); // ConsultationRecord의 timestamp 사용
+
+    // 날짜별로 인덱스를 매기기 위한 맵
+    final Map<String, int> dailyIndexMap = {};
 
     return ListView.builder(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(8.0),
       itemCount: sortedRecords.length,
       itemBuilder: (context, index) {
         final record = sortedRecords[index];
-        final listIndex = sortedRecords.length - index; // 최신이 [n], 오래된게 [1]
+        final timestamp = record.timestamp;
+        final formattedTime = DateFormat('yyyy-MM-dd-HH-mm').format(timestamp);
+        final dateKey = DateFormat('yyyyMMdd').format(timestamp);
 
-        String? formattedTime;
-        try {
-          final imagePath = record.originalImagePath;
-          final filename = imagePath.split('/').last;
-          final parts = filename.split('_');
-
-          print('🧪 filename: $filename');
-          print('🧪 split("_") 결과: $parts');
-
-          if (parts.length >= 2) {
-            final timePart = parts[1];
-            final y = timePart.substring(0, 4);
-            final m = timePart.substring(4, 6);
-            final d = timePart.substring(6, 8);
-            final h = timePart.substring(8, 10);
-            final min = timePart.substring(10, 12);
-
-            final dateString = '$y-$m-$d $h:$min:00'.replaceAll(' ', 'T');
-            final parsed = DateTime.parse(dateString);
-            formattedTime = DateFormat('yyyy-MM-dd HH:mm').format(parsed);
-          } else {
-            formattedTime = '시간 정보 없음';
-          }
-        } catch (e) {
-          print('❌ 시간 파싱 오류: $e');
-          formattedTime = '시간 파싱 오류';
-        }
+        dailyIndexMap[dateKey] = (dailyIndexMap[dateKey] ?? 0) + 1;
+        final dailyIndex = dailyIndexMap[dateKey]!;
 
         return Card(
           elevation: 2,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           margin: const EdgeInsets.symmetric(vertical: 8),
           child: ListTile(
-            title: Text('[$listIndex] $formattedTime'),
+            title: Text('[$dailyIndex] $formattedTime'),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 4),
                 Text('사용자 ID: ${record.userId}'),
                 Text('파일명: ${record.originalImageFilename}'),
+                // AI 결과 및 의사 소견 표시 (선택 사항)
+                if (record.aiResult != null) Text('AI 결과: ${record.aiResult}'),
+                if (record.doctorOpinion != null && record.doctorOpinion!.isNotEmpty)
+                  Text('의사 소견: ${record.doctorOpinion}'),
               ],
             ),
             onTap: () {
@@ -100,8 +87,8 @@ class _InferenceResultScreenState extends State<InferenceResultScreen> {
                 context,
                 MaterialPageRoute(
                   builder: (_) => ResultDetailScreen(
-                    originalImageUrl: '$imageBaseUrl${record.originalImagePath}',
-                    processedImageUrl: '$imageBaseUrl${record.processedImagePath}',
+                    originalImageUrl: '${widget.baseUrl}${record.originalImagePath}',
+                    processedImageUrl: '${widget.baseUrl}${record.processedImagePath}',
                   ),
                 ),
               );

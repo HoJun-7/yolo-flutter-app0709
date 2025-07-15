@@ -2,12 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 
-// ✅ 현재 프로젝트의 새 경로에 맞게 임포트
-import '../../viewmodel/doctor/d_patient_viewmodel.dart'; // DPatientViewModel 임포트
-import '../../viewmodel/auth_viewmodel.dart'; // ✅ DAuthViewModel 대신 AuthViewModel 임포트
-import '../doctor/d_patient_detail_screen.dart'; // DPatientDetailScreen 임포트
-import '../../model/doctor/d_patient.dart'; // DPatient 모델 임포트
-
+import '../../viewmodel/doctor/d_patient_viewmodel.dart';
+import '../../viewmodel/auth_viewmodel.dart';
+import '../doctor/d_patient_detail_screen.dart';
+import '../../model/doctor/d_patient.dart';
 
 class PatientListScreen extends StatefulWidget {
   const PatientListScreen({super.key});
@@ -26,18 +24,15 @@ class _PatientListScreenState extends State<PatientListScreen> {
   }
 
   Future<void> _loadPatients() async {
-    // ✅ AuthViewModel과 DPatientViewModel 사용
     final authViewModel = context.read<AuthViewModel>();
     final patientViewModel = context.read<DPatientViewModel>();
+    final user = authViewModel.currentUser;
 
-    // ✅ user.id가 nullable이므로 null 체크 추가
-    if (authViewModel.currentUser != null && authViewModel.currentUser!.isDoctor && authViewModel.currentUser!.id != null) {
-      await patientViewModel.fetchPatients(authViewModel.currentUser!.id!); // ✅ non-nullable로 사용
-      if (patientViewModel.errorMessage != null) {
-        _showSnack('환자 목록 로드 오류: ${patientViewModel.errorMessage}');
-      }
-    } else {
-      _showSnack('의사 계정으로 로그인해야 환자 목록을 볼 수 있습니다.');
+    if (user?.id == null) return;
+
+    await patientViewModel.fetchPatients(user!.id!);
+    if (patientViewModel.errorMessage != null) {
+      _showSnack('환자 목록 로드 오류: ${patientViewModel.errorMessage}');
     }
   }
 
@@ -56,9 +51,9 @@ class _PatientListScreenState extends State<PatientListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // ✅ DPatientViewModel과 AuthViewModel 사용
     final patientViewModel = context.watch<DPatientViewModel>();
     final authViewModel = context.watch<AuthViewModel>();
+    final doctorId = authViewModel.currentUser?.id;
 
     return Scaffold(
       appBar: AppBar(
@@ -69,9 +64,11 @@ class _PatientListScreenState extends State<PatientListScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
-            onPressed: () {
-              _showAddPatientDialog(context, authViewModel.currentUser?.id);
-            },
+            onPressed: doctorId == null
+                ? null
+                : () {
+                    _showAddPatientDialog(context, doctorId);
+                  },
           ),
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -109,14 +106,13 @@ class _PatientListScreenState extends State<PatientListScreen> {
                               children: [
                                 Text('생년월일: ${patient.dateOfBirth}'),
                                 Text('성별: ${patient.gender}'),
-                                if (patient.phoneNumber != null && patient.phoneNumber!.isNotEmpty)
+                                if (patient.phoneNumber?.isNotEmpty ?? false)
                                   Text('연락처: ${patient.phoneNumber}'),
-                                if (patient.address != null && patient.address!.isNotEmpty)
+                                if (patient.address?.isNotEmpty ?? false)
                                   Text('주소: ${patient.address}'),
                               ],
                             ),
                             onTap: () {
-                              // ✅ PatientDetailScreen으로 이동하며 patientId 전달 (null 체크 추가)
                               if (patient.id != null) {
                                 context.go('/patient_detail/${patient.id}');
                               } else {
@@ -136,12 +132,7 @@ class _PatientListScreenState extends State<PatientListScreen> {
     );
   }
 
-  void _showAddPatientDialog(BuildContext context, int? doctorId) {
-    if (doctorId == null) {
-      _showSnack('의사 ID를 찾을 수 없습니다. 다시 로그인해주세요.');
-      return;
-    }
-
+  void _showAddPatientDialog(BuildContext context, int doctorId) {
     final _nameController = TextEditingController();
     final _dobController = TextEditingController();
     final _genderController = TextEditingController();
@@ -205,7 +196,7 @@ class _PatientListScreenState extends State<PatientListScreen> {
 
                 if (success) {
                   _showSnack('환자가 성공적으로 추가되었습니다!');
-                  _loadPatients(); // 환자 추가 후 목록 새로고침
+                  _loadPatients();
                 } else {
                   _showSnack('환자 추가 실패: ${patientViewModel.errorMessage}');
                 }

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import '/presentation/model/doctor/d_consultation_record.dart';
+
+import '../../model/doctor/d_consultation_record.dart'; // ConsultationRecord 모델 임포트
 
 class ConsultationRecordViewModel with ChangeNotifier {
   final String baseUrl;
@@ -21,7 +22,8 @@ class ConsultationRecordViewModel with ChangeNotifier {
     notifyListeners();
 
     try {
-      final res = await http.get(Uri.parse('$baseUrl/api/inference-results'));
+      // 백엔드 API 엔드포인트 확인 (예: /api/inference-results)
+      final res = await http.get(Uri.parse('$baseUrl/inference-results'));
 
       if (res.statusCode == 200) {
         final List data = json.decode(res.body);

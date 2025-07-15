@@ -1,3 +1,6 @@
+// lib/presentation/model/doctor/d_consultation_record.dart
+import 'package:flutter/material.dart'; // for @required, but not strictly needed for model
+
 class ConsultationRecord {
   final String id; // MongoDB ObjectId → String
   final String userId;
@@ -8,6 +11,7 @@ class ConsultationRecord {
 
   final double? confidence;
   final List<List<int>>? lesionPoints;
+  final String? doctorOpinion; // ✅ 의사 소견 필드 추가
 
   ConsultationRecord({
     required this.id,
@@ -18,6 +22,7 @@ class ConsultationRecord {
     required this.timestamp,
     this.confidence,
     this.lesionPoints,
+    this.doctorOpinion, // ✅ 생성자에 추가
   });
 
   // ✅ 날짜 getter
@@ -55,9 +60,11 @@ class ConsultationRecord {
       lesionPoints: (inference['lesion_points'] as List?)
           ?.map<List<int>>((pt) => List<int>.from(pt))
           .toList(),
+      doctorOpinion: json['doctor_opinion'] as String?, // ✅ 필드 추가
     );
   }
 
+  // ✅ toJson 메서드 업데이트 (필요시)
   Map<String, dynamic> toJson() {
     return {
       '_id': id,
@@ -70,6 +77,32 @@ class ConsultationRecord {
         'backend_model_confidence': confidence,
         'lesion_points': lesionPoints,
       },
+      'doctor_opinion': doctorOpinion, // ✅ 필드 추가
     };
+  }
+
+  // ✅ copyWith 메서드 추가 (불변성 유지하며 객체 업데이트)
+  ConsultationRecord copyWith({
+    String? id,
+    String? userId,
+    String? originalImageFilename,
+    String? originalImagePath,
+    String? processedImagePath,
+    DateTime? timestamp,
+    double? confidence,
+    List<List<int>>? lesionPoints,
+    String? doctorOpinion,
+  }) {
+    return ConsultationRecord(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      originalImageFilename: originalImageFilename ?? this.originalImageFilename,
+      originalImagePath: originalImagePath ?? this.originalImagePath,
+      processedImagePath: processedImagePath ?? this.processedImagePath,
+      timestamp: timestamp ?? this.timestamp,
+      confidence: confidence ?? this.confidence,
+      lesionPoints: lesionPoints ?? this.lesionPoints,
+      doctorOpinion: doctorOpinion ?? this.doctorOpinion,
+    );
   }
 }

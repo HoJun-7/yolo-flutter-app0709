@@ -1,56 +1,57 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http; // HTTP 통신을 위해 필요
-import 'dart:convert'; // JSON 인코딩/디코딩을 위해 필요
-import 'package:flutter/foundation.dart' show kDebugMode; // kDebugMode를 위해 필요
+import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 
-class ChatbotViewModel extends ChangeNotifier {
-  // ✅ 생성자를 통해 주입받도록 변경
-  final String _baseUrl; 
-
-  // ✅ 생성자 추가: baseUrl을 필수 매개변수로 받습니다.
-  ChatbotViewModel({required String baseUrl}) : _baseUrl = baseUrl;
-
-  final List<ChatMessage> _messages = [];
-
-  List<ChatMessage> get messages => List.unmodifiable(_messages);
-
-  Future<void> sendMessage(String message) async { // 비동기 함수로 변경
-    _messages.add(ChatMessage(role: 'user', content: message));
-    notifyListeners();
-
-    try {
-      // TODO: 실제 챗봇 API 호출로 대체
-      // 예시: Flask 백엔드의 챗봇 엔드포인트 호출
-      final response = await http.post(
-        Uri.parse('$_baseUrl/chatbot/predict'), // 챗봇 API 엔드포인트 (예시)
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'message': message}),
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final botResponse = data['response'] ?? '응답을 받을 수 없습니다.';
-        _messages.add(ChatMessage(role: 'bot', content: botResponse));
-      } else {
-        if (kDebugMode) {
-          print('챗봇 API 서버 응답 오류: StatusCode=${response.statusCode}, Body=${response.body}');
-        }
-        _messages.add(ChatMessage(role: 'bot', content: '서버 오류 발생. 잠시 후 다시 시도해주세요.'));
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print('챗봇 API 호출 중 네트워크 오류: $e');
-      }
-      _messages.add(ChatMessage(role: 'bot', content: '서버와 연결할 수 없습니다. 네트워크 상태를 확인해주세요.'));
-    } finally {
-      notifyListeners(); // 메시지 추가 후 UI 업데이트
-    }
-  }
-}
-
+// 챗봇 메시지 모델
 class ChatMessage {
-  final String role; // 'user' or 'bot'
+  final String role; // 'user' 또는 'bot'
   final String content;
 
   ChatMessage({required this.role, required this.content});
+}
+
+class ChatbotViewModel extends ChangeNotifier {
+  final GenerativeModel _model;
+  final String baseUrl; // baseUrl은 현재 챗봇 로직에서는 직접 사용되지 않지만, main.dart에서 주입하도록 되어 있으므로 필드로 유지합니다.
+
+  final List<ChatMessage> _messages = []; // 챗봇 대화 목록
+
+  List<ChatMessage> get messages => List.unmodifiable(_messages);
+
+  // ✅ 생성자 수정: apiKey 매개변수 추가 및 _model 초기화에 사용
+  // 이 부분이 사용자님의 로컬 파일과 정확히 일치해야 합니다.
+  ChatbotViewModel({required String apiKey, required this.baseUrl})
+      : _model = GenerativeModel(
+          model: 'gemini-1.5-flash', // 사용하려는 Gemini 모델명
+          apiKey: apiKey, // ✅ 여기에 apiKey 사용
+          generationConfig: GenerationConfig(maxOutputTokens: 200), // 응답 토큰 제한
+        ) {
+    // 챗봇 초기 메시지 설정
+    _messages.add(ChatMessage(role: 'bot', content: '안녕하세요! 어떤 치아 고민이 있으신가요?'));
+  }
+
+  Future<void> sendMessage(String message) async {
+    if (message.trim().isEmpty) return; // 빈 메시지는 전송하지 않음
+
+    // 사용자 메시지 추가
+    _messages.add(ChatMessage(role: 'user', content: message));
+    notifyListeners(); // UI 업데이트
+
+    try {
+      // Gemini API 호출을 위한 Content 객체 생성
+      final contents = [Content.text(message)];
+      final response = await _model.generateContent(contents);
+      final botText = response.text ?? '응답이 없습니다.'; // 응답이 없으면 기본 메시지
+
+      // 챗봇 응답 메시지 추가
+      _messages.add(ChatMessage(role: 'bot', content: botText));
+    } catch (e) {
+      if (kDebugMode) {
+        print('Gemini 호출 오류: $e');
+      }
+      _messages.add(ChatMessage(role: 'bot', content: 'AI 호출 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'));
+    } finally {
+      notifyListeners(); // UI 업데이트
+    }
+  }
 }

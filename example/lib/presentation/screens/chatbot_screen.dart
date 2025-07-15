@@ -1,5 +1,7 @@
-//C:\Users\user\Desktop\0703flutter_v2\lib\features\chatbot\view\chatbot_screen.dart
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+// ✅ 임포트 경로 수정: chatbot_view.dart 대신 chatbot_viewmodel.dart를 참조하도록 변경
+import 'package:ultralytics_yolo_example/presentation/viewmodel/chatbot_viewmodel.dart'; // ViewModel 임포트
 
 class ChatbotScreen extends StatefulWidget {
   const ChatbotScreen({super.key});
@@ -10,25 +12,19 @@ class ChatbotScreen extends StatefulWidget {
 
 class _ChatbotScreenState extends State<ChatbotScreen> {
   final TextEditingController _messageController = TextEditingController();
-  final List<Map<String, String>> _messages = [
-    {'sender': 'chatbot', 'text': '안녕하세요! 어떤 치아 고민이 있으신가요?'},
-    {'sender': 'user', 'text': '어금니가 시려요.'},
-    {'sender': 'chatbot', 'text': '시린 치아는 잇몸 질환이나 충치일 수 있어요. 더 자세히 말씀해주시겠어요?'},
-  ]; // 챗봇 대화 목록 (임시 데이터)
 
-  void _sendMessage() {
+  void _sendMessage(ChatbotViewModel viewModel) {
     if (_messageController.text.isNotEmpty) {
-      setState(() {
-        _messages.add({'sender': 'user', 'text': _messageController.text});
-      });
-      // TODO: 여기에 챗봇 API 호출 로직 추가 (ViewModel 연동)
-      // 예시: _messages.add({'sender': 'chatbot', 'text': '챗봇 응답'});
+      viewModel.sendMessage(_messageController.text); // ViewModel의 sendMessage 호출
       _messageController.clear();
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // ViewModel 인스턴스 가져오기
+    final viewModel = Provider.of<ChatbotViewModel>(context);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -44,10 +40,11 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.all(16.0),
-              itemCount: _messages.length,
+              // 대화 목록은 ViewModel에서 가져옵니다.
+              itemCount: viewModel.messages.length,
               itemBuilder: (context, index) {
-                final message = _messages[index];
-                final isUser = message['sender'] == 'user';
+                final message = viewModel.messages[index];
+                final isUser = message.role == 'user'; // ViewModel의 ChatMessage 모델 사용
                 return Align(
                   alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
                   child: Container(
@@ -69,7 +66,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                       maxWidth: MediaQuery.of(context).size.width * 0.75, // 메시지 최대 너비 제한
                     ),
                     child: Text(
-                      message['text']!,
+                      message.content, // ViewModel의 ChatMessage 모델 사용
                       style: TextStyle(
                         color: isUser ? Colors.blue[900] : Colors.grey[800],
                         fontSize: 16.0,
@@ -97,12 +94,12 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                       fillColor: Colors.grey[100], // 입력창 배경색
                       contentPadding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
                     ),
-                    onSubmitted: (value) => _sendMessage(), // 엔터 키로 전송
+                    onSubmitted: (value) => _sendMessage(viewModel), // 엔터 키로 전송
                   ),
                 ),
                 const SizedBox(width: 8.0),
                 FloatingActionButton(
-                  onPressed: _sendMessage,
+                  onPressed: () => _sendMessage(viewModel), // 전송 버튼 클릭 시
                   backgroundColor: Colors.blueAccent, // 전송 버튼 색상
                   elevation: 2,
                   shape: const CircleBorder(), // 동그란 버튼
